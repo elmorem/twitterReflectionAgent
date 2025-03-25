@@ -2,9 +2,10 @@ from dotenv import load_dotenv
 from typing import List
 
 from langchain_core.messages import HumanMessage, BaseMessage, ToolMessage, AIMessage
+from langchain_core.tools import StructuredTool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
-from langgraph.prebuilt import Tool
+from langgraph.prebuilt import ToolNode
 
 
 from schemas import AnswerQuestion, ReviseAnswer, Reflection
@@ -14,24 +15,21 @@ load_dotenv(override=True)
 
 search = TavilySearchAPIWrapper()
 tavily_tool = TavilySearchResults(api_wrapper=search, max_results=5)
-tool_executor = ToolExecutor([tavily_tool])
 
 
-def execute_tools(state: List[BaseMessage]) -> List[ToolMessage]:
-    tool_invocation: AIMessage = state[-1]
-    parsed_tool_calls = parser.invoke(tool_invocation)
+def run_queries(search_queries: list[str], **kwargs):
+    """Run the generated queries."""
+    return tavily_tool.batch([{"query": query} for query in search_queries])
 
-    ids = []
-    tool_invocation = []
-    for parsed_call in parsed_tool_calls:
-        for query in parsed_call["args"]["search_queries"]:
-            tool_invocation.append(ToolInvocation(
-                tool="tavily_search_results_json",
-                tool_input=query,
-            )
-            )
-            ids.append(parsed_call["id"])
-    outputs = tool_executor.batch(tool_invocation)
+
+tool_node = ToolNode(
+    [
+        StructuredTool.from_function(run_queries, name=AnswerQuestion.__name__),
+        StructuredTool.from_function(run_queries, name=ReviseAnswer.__name__),
+    ]
+)
+
+
 
 if __name__ == "__main__":
     print("hello there")
