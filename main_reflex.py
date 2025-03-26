@@ -19,7 +19,8 @@ builder.add_edge("execute_tools", "revise")
 
 
 def event_loop(state: List[BaseMessage]) -> str:
-    count_tool_visits = sum(isinstance(item, ToolMessage) for item in state)
+    count_tool_visits = sum(isinstance(item, ToolMessage) for item in state) #clever counting
+    # count_tool_visits = len([item for item in state if isinstance(item, ToolMessage)])
     num_iterations = count_tool_visits
     if num_iterations > MAX_ITERATIONS:
         return END
